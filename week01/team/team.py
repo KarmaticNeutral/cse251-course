@@ -19,7 +19,7 @@ import threading
 
 # Include cse 251 common Python files
 import os, sys
-sys.path.append('../../code')   # Do not change the path.
+sys.path.append('code')   # Do not change the path.
 from cse251 import *
 
 # Global variable for counting the number of primes found
@@ -45,6 +45,13 @@ def is_prime(n: int) -> bool:
     return True
 
 
+def fun(start, range_count):
+    global prime_count
+    for i in range(start, start + range_count):
+        if is_prime(i):
+            prime_count += 1
+            print(i, end=', ', flush=True)
+
 if __name__ == '__main__':
     log = Log(show_terminal=True)
     log.start_timer()
@@ -55,15 +62,24 @@ if __name__ == '__main__':
 
     start = 10000000000
     range_count = 100000
-    for i in range(start, start + range_count):
-        if is_prime(i):
-            prime_count += 1
-            print(i, end=', ', flush=True)
-    print(flush=True)
+
+    num_threads = 10
+    thread_size = range_count // num_threads
+    threads = []
+    
+    for i in range(num_threads):
+        thread_start = start + (i * range_count // num_threads)
+        thr = threading.Thread(target=fun, args=(thread_start, thread_size,))
+        #print("started thread at " + str(thread_start) + "With size " + str(thread_size))
+        threads.append(thr)
+
+    for t in threads:
+        t.start()
+
+    for t in threads:
+        t.join()
 
     # Should find 4306 primes
     log.write(f'Numbers processed = {numbers_processed}')
     log.write(f'Primes found      = {prime_count}')
     log.stop_timer('Total time')
-
-
