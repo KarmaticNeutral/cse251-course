@@ -113,7 +113,7 @@ def draw_circles(tur):
 
 def draw_threaded_circles(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
-        for y in range(-300, 350, 100):
+        for y in range(-300, 350, 200):
             lock.acquire()
             draw_circle(tur, x, y-2, 50)
             lock.release()
@@ -126,7 +126,7 @@ def draw_triangles(tur):
 
 def draw_threaded_triangles(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
-        for y in range(-300, 350, 100):
+        for y in range(-300, 350, 200):
             lock.acquire()
             draw_triangle(tur, x-30, y-30+10, 60)
             lock.release()
@@ -139,7 +139,7 @@ def draw_rectangles(tur):
 
 def draw_threaded_rectangles(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
-        for y in range(-300, 350, 100):
+        for y in range(-300, 350, 200):
             lock.acquire()
             draw_rectangle(tur, x-10, y+5, 20, 15)
             lock.release()
