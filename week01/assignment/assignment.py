@@ -92,32 +92,52 @@ def draw_coord_system(tur, x, y, size=300, color='black'):
         tur.backward(size)
         tur.left(90)
 
-def draw_squares(tur, lock=threading.Lock()):
+def draw_squares(tur):
     """Draw a group of squares"""
+    for x in range(-300, 350, 200):
+        for y in range(-300, 350, 200):
+            draw_square(tur, x - 50, y + 50, 100)
+
+def draw_threaded_squares(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
         for y in range(-300, 350, 100):
             lock.acquire()
             draw_square(tur, x - 50, y + 50, 100)
             lock.release()
 
-def draw_circles(tur, lock=threading.Lock()):
+def draw_circles(tur):
     """Draw a group of circles"""
+    for x in range(-300, 350, 200):
+        for y in range(-300, 350, 200):
+            draw_circle(tur, x, y-2, 50)
+
+def draw_threaded_circles(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
         for y in range(-300, 350, 100):
             lock.acquire()
             draw_circle(tur, x, y-2, 50)
             lock.release()
 
-def draw_triangles(tur, lock=threading.Lock()):
+def draw_triangles(tur):
     """Draw a group of triangles"""
+    for x in range(-300, 350, 200):
+        for y in range(-300, 350, 200):
+            draw_triangle(tur, x-30, y-30+10, 60)
+
+def draw_threaded_triangles(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
         for y in range(-300, 350, 100):
             lock.acquire()
             draw_triangle(tur, x-30, y-30+10, 60)
             lock.release()
 
-def draw_rectangles(tur, lock=threading.Lock()):
+def draw_rectangles(tur):
     """Draw a group of Rectangles"""
+    for x in range(-300, 350, 200):
+        for y in range(-300, 350, 200):
+            draw_rectangle(tur, x-10, y+5, 20, 15)
+
+def draw_threaded_rectangles(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
         for y in range(-300, 350, 100):
             lock.acquire()
@@ -165,10 +185,10 @@ def run_with_threads(tur, log, main_turtle):
 
     lock = threading.Lock()
 
-    tRect = threading.Thread(target=draw_rectangles, args=(tur, lock,))
-    tCirc = threading.Thread(target=draw_circles, args=(tur, lock,))
-    tTria = threading.Thread(target=draw_triangles, args=(tur, lock,))
-    tSqua = threading.Thread(target=draw_squares, args=(tur, lock,))
+    tRect = threading.Thread(target=draw_threaded_rectangles, args=(tur, lock,))
+    tCirc = threading.Thread(target=draw_threaded_circles, args=(tur, lock,))
+    tTria = threading.Thread(target=draw_threaded_triangles, args=(tur, lock,))
+    tSqua = threading.Thread(target=draw_threaded_squares, args=(tur, lock,))
 
     tRect.start()
     tCirc.start()
