@@ -100,7 +100,7 @@ def draw_squares(tur):
 
 def draw_threaded_squares(tur, lock=threading.Lock()):
     for x in range(-300, 350, 100):
-        for y in range(-300, 350, 100):
+        for y in range(-300, 350, 200):
             lock.acquire()
             draw_square(tur, x - 50, y + 50, 100)
             lock.release()
