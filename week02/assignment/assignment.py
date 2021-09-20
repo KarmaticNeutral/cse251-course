@@ -3,13 +3,13 @@
 Course: CSE 251 
 Lesson Week: 02
 File: assignment.py 
-Author: Brother Comeau
+Author: Tim Taylor
 
 Purpose: Retrieve Star Wars details from a website
 
 Instructions:
 
-- Review instructions in I-Lean for this assignment.
+- Review instructions in I-Learn for this assignment.
 
 The call to TOP_API_URL will return the following Dictionary.  Do NOT have this
 dictionary hard coded - use the API call to get this dictionary.  Then you can
@@ -43,22 +43,99 @@ TOP_API_URL = r'https://swapi.dev/api'
 # Global Variables
 call_count = 0
 
-
 # TODO Add your threaded class definition here
+class API_Call(threading.Thread):
+    def __init__(self, URL, requestTitle, lock):
+        threading.Thread.__init__(self)
+        self.URL = URL
+        self.requestTitle = requestTitle
+        self.lock = lock
 
+    def run(self):
+        global call_count
+        with self.lock:
+            call_count = call_count + 1
+        response = requests.get(self.URL)
+        self.data = None
+
+        if response.status_code == 200:
+            self.data = response.json()
+        else:
+            print("Error Executing " + self.requestTitle + " Request")
 
 # TODO Add any functions you need here
+class ReturnData:
+    def __init__(self, count, dataStr):
+        self.count = count
+        self.dataStr = dataStr
 
+def getItemName(item):
+    return item['name']
+
+def makeGetCalls(items, lock):
+    item_threads = []
+    item_string = ""
+    item_data = []
+
+    for i in items:
+        call = API_Call(i, str(i) + "Request", lock)
+        call.start()
+        item_threads.append(call)
+
+    for t in item_threads:
+        t.join()
+        item_data.append(t.data)
+
+    item_data.sort(key=getItemName)
+
+    for i in item_data[:-1]:
+        item_string = item_string + i['name'] + ", "
+    item_string = item_string + item_data[-1]['name']
+
+    return ReturnData(len(item_data), item_string)
 
 def main():
+    lock = threading.Lock()
     log = Log(show_terminal=True)
     log.start_timer('Starting to retrieve data from swapi.dev')
 
     # TODO Retrieve Top API urls
+    top = API_Call(TOP_API_URL, "Top API URL", lock)
+    top.start()
+    top.join()
 
-    # TODO Retireve Details on film 6
+    # TODO Retrieve Details on film 6
+    film6 = API_Call(top.data['films'] + '6', 'Film 6 Request', lock)
+    film6.start()
+    film6.join()
+
+    character_return = makeGetCalls(film6.data['characters'], lock)
+    planet_return = makeGetCalls(film6.data['planets'], lock)
+    starship_return = makeGetCalls(film6.data['starships'], lock)
+    vehicles_return = makeGetCalls(film6.data['vehicles'], lock)
+    species_return = makeGetCalls(film6.data['species'], lock)
 
     # TODO Display results
+    log.write("----------------------------------------")
+    log.write("Title   : " + film6.data['title'])
+    log.write("Director: " + film6.data['director'])
+    log.write("Producer: " + film6.data['producer'])
+    log.write("Released: " + film6.data['release_date'])
+    log.write("Characters: " + str(character_return.count))
+    log.write(character_return.dataStr)
+    log.write()
+    log.write("Planets: " + str(planet_return.count))
+    log.write(planet_return.dataStr)
+    log.write()
+    log.write("Starships: " + str(starship_return.count))
+    log.write(starship_return.dataStr)
+    log.write()
+    log.write("Vehicles: " + str(vehicles_return.count))
+    log.write(vehicles_return.dataStr)
+    log.write()
+    log.write("Species: " + str(species_return.count))
+    log.write(species_return.dataStr)
+    log.write()
 
     log.stop_timer('Total Time To complete')
     log.write(f'There were {call_count} calls to swapi server')
