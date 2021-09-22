@@ -45,18 +45,13 @@ call_count = 0
 
 # TODO Add your threaded class definition here
 class API_Call(threading.Thread):
-    def __init__(self, URL, requestTitle, lock):
+    def __init__(self, URL, requestTitle):
         threading.Thread.__init__(self)
         self.URL = URL
         self.requestTitle = requestTitle
-        self.lock = lock
 
     def run(self):
-        global call_count
-        with self.lock:
-            call_count = call_count + 1
         response = requests.get(self.URL)
-        self.data = None
 
         if response.status_code == 200:
             self.data = response.json()
@@ -72,13 +67,15 @@ class ReturnData:
 def getItemName(item):
     return item['name']
 
-def makeGetCalls(items, lock):
+def makeGetCalls(items):
+    global call_count
     item_threads = []
     item_string = ""
     item_data = []
 
     for i in items:
-        call = API_Call(i, str(i) + "Request", lock)
+        call = API_Call(i, str(i) + "Request")
+        call_count += 1
         call.start()
         item_threads.append(call)
 
@@ -95,25 +92,27 @@ def makeGetCalls(items, lock):
     return ReturnData(len(item_data), item_string)
 
 def main():
-    lock = threading.Lock()
+    global call_count
     log = Log(show_terminal=True)
     log.start_timer('Starting to retrieve data from swapi.dev')
 
     # TODO Retrieve Top API urls
-    top = API_Call(TOP_API_URL, "Top API URL", lock)
+    top = API_Call(TOP_API_URL, "Top API URL")
     top.start()
+    call_count += 1
     top.join()
 
     # TODO Retrieve Details on film 6
-    film6 = API_Call(top.data['films'] + '6', 'Film 6 Request', lock)
+    film6 = API_Call(top.data['films'] + '6', 'Film 6 Request')
     film6.start()
+    call_count += 1
     film6.join()
 
-    character_return = makeGetCalls(film6.data['characters'], lock)
-    planet_return = makeGetCalls(film6.data['planets'], lock)
-    starship_return = makeGetCalls(film6.data['starships'], lock)
-    vehicles_return = makeGetCalls(film6.data['vehicles'], lock)
-    species_return = makeGetCalls(film6.data['species'], lock)
+    character_return = makeGetCalls(film6.data['characters'])
+    planet_return = makeGetCalls(film6.data['planets'])
+    starship_return = makeGetCalls(film6.data['starships'])
+    vehicles_return = makeGetCalls(film6.data['vehicles'])
+    species_return = makeGetCalls(film6.data['species'])
 
     # TODO Display results
     log.write("----------------------------------------")
