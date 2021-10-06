@@ -2,7 +2,7 @@
 Course: CSE 251
 Lesson Week: 04
 File: assignment.py
-Author: <Your name>
+Author: Tim Taylor
 
 Purpose: Assignment 04 - Factory and Dealership
 
@@ -77,10 +77,11 @@ class Queue251():
 class Factory(threading.Thread):
     """ This is a factory.  It will create cars and place them on the car queue """
 
-    def __init__(self):
+    def __init__(self, q):
         # TODO, you need to add arguments that will pass all of data that 1 factory needs
         # to create cars and to place them in a queue.
-        pass
+        threading.Thread.__init__(self)
+        self.q = q
 
 
     def run(self):
@@ -90,19 +91,20 @@ class Factory(threading.Thread):
             create a car
             place the car on the queue
             signal the dealer that there is a car on the queue
-           """
-
+            """
+            if self.q.size() < MAX_QUEUE_SIZE:
+                self.q.put(Car())
         # signal the dealer that there there are not more cars
-        pass
 
 
 class Dealer(threading.Thread):
     """ This is a dealer that receives cars """
 
-    def __init__(self):
+    def __init__(self , q):
         # TODO, you need to add arguments that pass all of data that 1 factory needs
         # to create cars and to place them in a queue
-        pass
+        threading.Thread.__init__(self)
+        self.q = q
 
     def run(self):
         while True:
@@ -122,22 +124,27 @@ def main():
     log = Log(show_terminal=True)
 
     # TODO Create semaphore(s)
+    sem = Semaphore()
     # TODO Create queue251 
-    # TODO Create lock(s) ?
-
+    q = Queue251()
+    # TODO Create lock(s) ? 0
+    lock = threading.Lock
     # This tracks the length of the car queue during receiving cars by the dealership
     # i.e., update this list each time the dealer receives a car
     queue_stats = [0] * MAX_QUEUE_SIZE
 
     # TODO create your one factory
-
+    factory = Factory(q)
     # TODO create your one dealership
-
+    dealership = Dealer(q)
     log.start_timer()
 
     # TODO Start factory and dealership
-
+    factory.start()
+    dealership.start()
     # TODO Wait for factory and dealership to complete
+    factory.join()
+    dealership.join()
 
     log.stop_timer(f'All {sum(queue_stats)} have been created')
 
