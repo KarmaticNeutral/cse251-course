@@ -25,6 +25,7 @@ from cse251 import *
 CARS_TO_PRODUCE = 500
 MAX_QUEUE_SIZE = 10
 SLEEP_REDUCE_FACTOR = 50
+NO_MORE_VALUES = 'No More'
 
 # NO GLOBAL VARIABLES!
 
@@ -77,11 +78,13 @@ class Queue251():
 class Factory(threading.Thread):
     """ This is a factory.  It will create cars and place them on the car queue """
 
-    def __init__(self, q):
+    def __init__(self, q, empty, full):
         # TODO, you need to add arguments that will pass all of data that 1 factory needs
         # to create cars and to place them in a queue.
         threading.Thread.__init__(self)
         self.q = q
+        self.empty = empty
+        self.full = full
 
 
     def run(self):
@@ -92,19 +95,26 @@ class Factory(threading.Thread):
             place the car on the queue
             signal the dealer that there is a car on the queue
             """
-            if self.q.size() < MAX_QUEUE_SIZE:
-                self.q.put(Car())
+            self.full.acquire()
+            self.q.put(Car())
+            self.empty.release()
         # signal the dealer that there there are not more cars
+        self.full.acquire()
+        self.q.put(NO_MORE_VALUES)
+        self.empty.release()
 
 
 class Dealer(threading.Thread):
     """ This is a dealer that receives cars """
 
-    def __init__(self , q):
+    def __init__(self , q, empty, full, queue_stats):
         # TODO, you need to add arguments that pass all of data that 1 factory needs
         # to create cars and to place them in a queue
         threading.Thread.__init__(self)
         self.q = q
+        self.empty = empty
+        self.full = full
+        self.queue_stats = queue_stats
 
     def run(self):
         while True:
@@ -113,7 +123,14 @@ class Dealer(threading.Thread):
             take the car from the queue
             signal the factory that there is an empty slot in the queue
             """
-
+            self.empty.acquire()
+            car = self.q.get()
+            if car == NO_MORE_VALUES:
+                self.full.release()
+                break
+            else:
+                self.queue_stats[self.q.size()] += 1    
+            self.full.release()
             # Sleep a little after selling a car
             # Last statement in this for loop - don't change
             time.sleep(random.random() / (SLEEP_REDUCE_FACTOR))
@@ -124,19 +141,21 @@ def main():
     log = Log(show_terminal=True)
 
     # TODO Create semaphore(s)
-    sem = Semaphore()
+    empty = threading.Semaphore(0)
+    full = threading.Semaphore(MAX_QUEUE_SIZE)
     # TODO Create queue251 
     q = Queue251()
     # TODO Create lock(s) ? 0
     lock = threading.Lock
+
     # This tracks the length of the car queue during receiving cars by the dealership
     # i.e., update this list each time the dealer receives a car
     queue_stats = [0] * MAX_QUEUE_SIZE
 
     # TODO create your one factory
-    factory = Factory(q)
+    factory = Factory(q, empty, full)
     # TODO create your one dealership
-    dealership = Dealer(q)
+    dealership = Dealer(q, empty, full, queue_stats)
     log.start_timer()
 
     # TODO Start factory and dealership

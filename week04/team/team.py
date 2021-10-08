@@ -30,7 +30,8 @@ def retrieve_thread(q, log):
     while True:
         url = q.get()
         if url == NO_MORE_VALUES:
-            q.put(url)
+            q.put(url) #Try to keep retreive threads to only gets. No puts.
+                       #put on NumThreads NOMOREVALUES at first instead of putting them back.
             break
         
         r = requests.get(url).json()
