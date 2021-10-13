@@ -23,7 +23,7 @@ import os, sys
 sys.path.append('../../code')   # Do not change the path.
 from cse251 import *
 
-PRIME_PROCESS_COUNT = 1
+PRIME_PROCESS_COUNT = 3
 
 def is_prime(n: int) -> bool:
     """Primality test using 6k+-1 optimization.
@@ -41,8 +41,24 @@ def is_prime(n: int) -> bool:
     return True
 
 # TODO create read_thread function
+def read_thread(q, filename):
+    with open(filename) as f:
+        while True:
+            line = f.readline().strip()
+            if line == '':
+                break
+            q.put(int(line))
+    for _ in range(PRIME_PROCESS_COUNT):
+        q.put(-1)
 
 # TODO create prime_process function
+def prime_process(numbers, primes):
+    while True:
+        potential_prime = numbers.get()
+        if (potential_prime == -1):
+            break
+        if is_prime(potential_prime):
+            primes.append(potential_prime)
 
 def create_data_txt(filename):
     with open(filename, 'w') as f:
@@ -62,14 +78,22 @@ def main():
     log.start_timer()
 
     # TODO Create shared data structures
-
+    numbers = mp.Queue()
+    primes = mp.Manager().list()
     # TODO create reading thread
-
+    read = threading.Thread(target=read_thread, args=(numbers, filename))
     # TODO create prime processes
+    processes = [mp.Process(target=prime_process, args=(numbers, primes)) for _ in range(PRIME_PROCESS_COUNT)]
 
     # TODO Start them all
+    read.start()
+    for p in processes:
+        p.start()
 
     # TODO wait for them to complete
+    read.join()
+    for p in processes:
+        p.join()
 
     log.stop_timer(f'All primes have been found using {PRIME_PROCESS_COUNT} processes')
 
@@ -77,7 +101,7 @@ def main():
     print(f'There are {len(primes)} found:')
     for prime in primes:
         print(prime)
-
+    
 
 if __name__ == '__main__':
     main()

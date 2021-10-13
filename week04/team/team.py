@@ -39,7 +39,6 @@ def retrieve_thread(q, log):
 
 def file_reader(q, file_name, log):
     """ This thread reading the data file and places the values in the data_queue """
-
     with open(file_name) as f:
         line = f.readline().strip()
         q.put(line)
