@@ -87,7 +87,6 @@ class Marble_Creator(mp.Process):
 
     def __init__(self, delay, parent_conn, marble_count):
         mp.Process.__init__(self)
-        # TODO Add any arguments and variables here
         self.parent_conn = parent_conn
         self.marble_count = marble_count
         self.delay = delay
@@ -111,7 +110,6 @@ class Bagger(mp.Process):
         marbles, the bag of marbles are sent to the assembler """
     def __init__(self, delay, size, child_conn, parent_conn):
         mp.Process.__init__(self)
-        # TODO Add any arguments and variables here
         self.delay = delay
         self.size = size
         self.child_conn = child_conn
@@ -132,15 +130,11 @@ class Bagger(mp.Process):
                 break
             bag.add(mar)
             if bag.get_size() == self.size:
-                #print("Bagger: ", bag)
-                self.parent_conn.send(bag)
-                #TODO FOR SOME REASON I HAVE TO SEND THE BAG TWICE?!?!
                 self.parent_conn.send(bag)
                 time.sleep(self.delay)
                 bag = Bag()
         self.parent_conn.send(NO_MORE)
         self.parent_conn.close()
-        #print("Bagger Done")
 
 class Assembler(mp.Process):
     """ Take the set of marbles and create a gift from them.
@@ -149,7 +143,6 @@ class Assembler(mp.Process):
 
     def __init__(self, delay, count, child_conn, parent_conn):
         mp.Process.__init__(self)
-        # TODO Add any arguments and variables here
         self.delay = delay
         self.count = count
         self.child_conn = child_conn
@@ -165,10 +158,9 @@ class Assembler(mp.Process):
         '''
         while True:
             bag = self.child_conn.recv()
-            #print(bag)
             if bag == NO_MORE:
                 break
-            gift = Gift(random.choice(self.marble_names), self.child_conn.recv())
+            gift = Gift(random.choice(self.marble_names), bag)
             self.count.value += 1
             self.parent_conn.send(gift)
             time.sleep(self.delay)
@@ -179,7 +171,6 @@ class Wrapper(mp.Process):
     """ Takes created gifts and wraps them by placing them in the boxes file """
     def __init__(self, delay, child_conn):
         mp.Process.__init__(self)
-        # TODO Add any arguments and variables here
         self.delay = delay
         self.child_conn = child_conn
 
@@ -190,12 +181,12 @@ class Wrapper(mp.Process):
             save gift to the file with the current time
             sleep the required amount
         '''
-        with open(BOXES_FILENAME, 'a') as f:
+        with open(BOXES_FILENAME, 'w') as f:
             while True:
                 gift = self.child_conn.recv()
                 if gift == NO_MORE:
                     break
-                f.write(time.strftime("%H:%M:%S :", time.gmtime()) + str(gift) + "\n")
+                f.write(time.strftime("%H:%M:%S: ", time.gmtime()) + str(gift) + "\n")
                 time.sleep(self.delay)
 
 
@@ -231,12 +222,10 @@ def main():
     log.write(f'settings["assembler-delay"] = {settings[ASSEMBLER_DELAY]}')
     log.write(f'settings["wrapper-delay"]   = {settings[WRAPPER_DELAY]}')
 
-    # TODO: create Pipes between creator -> bagger -> assembler -> wrapper
     creator_parent, bagger_child = mp.Pipe()
     bagger_parent, assembler_child = mp.Pipe()
     assembler_parent, wrapper_child = mp.Pipe()
 
-    # TODO create variable to be used to count the number of gifts
     gifts = mp.Value('i', 0)
 
     # delete final boxes file
@@ -245,25 +234,21 @@ def main():
 
     log.write('Create the processes')
     processes = []
-    # TODO Create the processes (ie., classes above)
     processes.append(Marble_Creator(settings[CREATOR_DELAY], creator_parent, settings[MARBLE_COUNT]))
     processes.append(Bagger(settings[BAGGER_DELAY], settings[BAG_COUNT], bagger_child, bagger_parent))
     processes.append(Assembler(settings[ASSEMBLER_DELAY], gifts, assembler_child, assembler_parent))
     processes.append(Wrapper(settings[WRAPPER_DELAY], wrapper_child))
 
     log.write('Starting the processes')
-    # TODO add code here
     for p in processes:
         p.start()
 
     log.write('Waiting for processes to finish')
-    # TODO add code here
     for p in processes:
         p.join()
 
     display_final_boxes(BOXES_FILENAME, log)
 
-    # TODO Log the number of gifts created.
     log.write(f'Total Gifts Made: {gifts.value}')
 
 
