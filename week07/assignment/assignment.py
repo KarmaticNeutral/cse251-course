@@ -2,7 +2,7 @@
 Course: CSE 251
 Lesson Week: 07
 File: assingnment.py
-Author: <Your name here>
+Author: Tim Taylor
 Purpose: Process Task Files
 
 Instructions:  See I-Learn
@@ -17,6 +17,7 @@ why they were the best choices.
 
 from datetime import datetime, timedelta
 import requests
+import threading
 import multiprocessing as mp
 from matplotlib.pylab import plt
 import numpy as np
@@ -41,6 +42,20 @@ result_upper = []
 result_sums = []
 result_names = []
 
+class API_Call(threading.Thread):
+    def __init__(self, URL, requestTitle):
+        threading.Thread.__init__(self)
+        self.URL = URL
+        self.requestTitle = requestTitle
+
+    def run(self):
+        response = requests.get(self.URL)
+
+        if response.status_code == 200:
+            self.data = response.json()
+        else:
+            print("Error Executing " + self.requestTitle + " Request")
+
 def is_prime(n: int):
     """Primality test using 6k+-1 optimization.
     From: https://en.wikipedia.org/wiki/Primality_test
@@ -57,80 +72,72 @@ def is_prime(n: int):
     return True
  
 def task_prime(value):
-    """
-    Use the is_prime() above
-    Add the following to the global list:
-        {value} is prime
-            - or -
-        {value} is not prime
-    """
-    pass
+    return f'{value} is prime' if is_prime(value) else f'{value} is not prime'
 
 def task_word(word):
-    """
-    search in file 'words.txt'
-    Add the following to the global list:
-        {word} Found
-            - or -
-        {word} not found *****
-    """
-    pass
+    with open("words.txt") as f:
+        while True:
+            line = f.readline()
+            if not line:
+                return f'{word} not found *****'
+            if word == line.strip():
+                return f'{word} Found'
 
 def task_upper(text):
-    """
-    Add the following to the global list:
-        {text} ==>  uppercase version of {text}
-    """
-    pass
+    return text.upper()
 
 def task_sum(start_value, end_value):
-    """
-    Add the following to the global list:
-        sum of {start_value:,} to {end_value:,} = {total:,}
-    """
-    pass
+    total = sum(range(start_value, end_value + 1))
+    return f'sum of {start_value} to {end_value} = {total}'
 
 def task_name(url):
-    """
-    use requests module
-    Add the following to the global list:
-        {url} has name <name>
-            - or -
-        {url} had an error receiving the information
-    """
-    pass
-
+    call = API_Call(url, "URL Task: {url}")
+    call.start()
+    call.join()
+    return f'{url} has name {call.data[TYPE_NAME]}' if call.data else f'{url} had an error receiving the information'
 
 def main():
     log = Log(show_terminal=True)
     log.start_timer()
 
     # TODO Create process pools
+    prime_pool = mp.Pool(4)
+    word_pool = mp.Pool(2)
+    text_pool = mp.Pool(2)
+    sum_pool = mp.Pool(4)
+    url_pool = mp.Pool(2)
 
     count = 0
     task_files = glob.glob("*.task")
     for filename in task_files:
-        # print()
-        # print(filename)
         task = load_json_file(filename)
         print(task)
         count += 1
         task_type = task['task']
         if task_type == TYPE_PRIME:
-            task_prime(task['value'])
+            prime_pool.apply_async(task_prime, args=(task['value'],), callback = result_primes.append)
         elif task_type == TYPE_WORD:
-            task_word(task['word'])
+            word_pool.apply_async(task_word, args=(task['word'],), callback = result_words.append)
         elif task_type == TYPE_UPPER:
-            task_upper(task['text'])
+            text_pool.apply_async(task_upper, args=(task['text'],), callback = result_upper.append)
         elif task_type == TYPE_SUM:
-            task_sum(task['start'], task['end'])
+            sum_pool.apply_async(task_sum, args=(task['start'], task['end']), callback = result_sums.append)
         elif task_type == TYPE_NAME:
-            task_name(task['url'])
+            url_pool.apply_async(task_name, args=(task['url'],), callback = result_names.append)
         else:
             log.write(f'Error: unknown task type {task_type}')
 
     # TODO start and wait pools
-
+    prime_pool.close()
+    word_pool.close()
+    text_pool.close()
+    sum_pool.close()
+    url_pool.close()
+    prime_pool.join()
+    word_pool.join()
+    text_pool.join()
+    sum_pool.join()
+    url_pool.join()
 
     # Do not change the following code (to the end of the main function)
     def log_list(lst, log):
