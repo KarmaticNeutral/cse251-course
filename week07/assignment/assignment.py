@@ -7,11 +7,15 @@ Purpose: Process Task Files
 
 Instructions:  See I-Learn
 
-TODO
-
-Add you comments here on the pool sizes that you used for your assignment and
-why they were the best choices.
-
+I ran a test on a limited sample of 100 of each task
+with a varied number of threads to test each pool for all
+sizes from 1 to 4. I found that with my 4 core computer, 
+the fastest pool sizes were:
+Primes: 1
+Word: 2
+Text: 1
+Sum: 1
+APICall: 1
 
 """
 
@@ -23,6 +27,7 @@ from matplotlib.pylab import plt
 import numpy as np
 import glob
 import math 
+import itertools
 
 # Include cse 251 common Python files - Dont change
 import os, sys
@@ -98,90 +103,93 @@ def task_name(url):
 
 def main():
     log = Log(show_terminal=True)
-    for prime_size in range(1, 7):
-        for word_size in range(1, 7):
-            for text_size in range(1, 7):
-                for sum_size in range(1, 7):
-                    for url_size in range(1, 7):
-                        for attempts in range(2):
-                            log.start_timer()
+    # lists = [
+    #     range(1, 4),
+    #     range(1, 4),
+    #     range(1, 4),
+    #     range(1, 4),
+    #     range(1, 4),
+    # ]
+    # for prime_size, word_size, text_size, sum_size, url_size in itertools.product(*lists):
+    #     for attempts in range(2):
+    log.start_timer()
 
-                            # TODO Create process pools
-                            prime_pool = mp.Pool(prime_size)
-                            word_pool = mp.Pool(word_size)
-                            text_pool = mp.Pool(text_size)
-                            sum_pool = mp.Pool(sum_size)
-                            url_pool = mp.Pool(url_size)
+    # TODO Create process pools
+    prime_pool = mp.Pool(1) #prime_size)
+    word_pool = mp.Pool(2) #word_size)
+    text_pool = mp.Pool(1) #text_size)
+    sum_pool = mp.Pool(1) #sum_size)
+    url_pool = mp.Pool(1) #url_size)
 
-                            count = 0
-                            task_files = glob.glob("*.task")
-                            for filename in task_files:
-                                task = load_json_file(filename)
-                                #print(task)
-                                count += 1
-                                task_type = task['task']
-                                if task_type == TYPE_PRIME:
-                                    prime_pool.apply_async(task_prime, args=(task['value'],), callback = result_primes.append)
-                                elif task_type == TYPE_WORD:
-                                    word_pool.apply_async(task_word, args=(task['word'],), callback = result_words.append)
-                                elif task_type == TYPE_UPPER:
-                                    text_pool.apply_async(task_upper, args=(task['text'],), callback = result_upper.append)
-                                elif task_type == TYPE_SUM:
-                                    sum_pool.apply_async(task_sum, args=(task['start'], task['end']), callback = result_sums.append)
-                                elif task_type == TYPE_NAME:
-                                    url_pool.apply_async(task_name, args=(task['url'],), callback = result_names.append)
-                                else:
-                                    log.write(f'Error: unknown task type {task_type}')
+    count = 0
+    task_files = glob.glob("*.task")
+    for filename in task_files:
+        task = load_json_file(filename)
+        #print(task)
+        count += 1
+        task_type = task['task']
+        if task_type == TYPE_PRIME:
+            prime_pool.apply_async(task_prime, args=(task['value'],), callback = result_primes.append)
+        elif task_type == TYPE_WORD:
+            word_pool.apply_async(task_word, args=(task['word'],), callback = result_words.append)
+        elif task_type == TYPE_UPPER:
+            text_pool.apply_async(task_upper, args=(task['text'],), callback = result_upper.append)
+        elif task_type == TYPE_SUM:
+            sum_pool.apply_async(task_sum, args=(task['start'], task['end']), callback = result_sums.append)
+        elif task_type == TYPE_NAME:
+            url_pool.apply_async(task_name, args=(task['url'],), callback = result_names.append)
+        else:
+            log.write(f'Error: unknown task type {task_type}')
 
-                            # TODO start and wait pools
-                            prime_pool.close()
-                            word_pool.close()
-                            text_pool.close()
-                            sum_pool.close()
-                            url_pool.close()
-                            prime_pool.join()
-                            word_pool.join()
-                            text_pool.join()
-                            sum_pool.join()
-                            url_pool.join()
+    # TODO start and wait pools
+    prime_pool.close()
+    word_pool.close()
+    text_pool.close()
+    sum_pool.close()
+    url_pool.close()
+    prime_pool.join()
+    word_pool.join()
+    text_pool.join()
+    sum_pool.join()
+    url_pool.join()
 
-                            # # Do not change the following code (to the end of the main function)
-                            # def log_list(lst, log):
-                            #     for item in lst:
-                            #         log.write(item)
-                            #     log.write(' ')
-                            
-                            # log.write('-' * 80)
-                            # log.write(f'Primes: {len(result_primes)}')
-                            # log_list(result_primes, log)
+    # Do not change the following code (to the end of the main function)
+    def log_list(lst, log):
+        for item in lst:
+            log.write(item)
+        log.write(' ')
+    
+    log.write('-' * 80)
+    log.write(f'Primes: {len(result_primes)}')
+    log_list(result_primes, log)
 
-                            # log.write('-' * 80)
-                            # log.write(f'Words: {len(result_words)}')
-                            # log_list(result_words, log)
+    log.write('-' * 80)
+    log.write(f'Words: {len(result_words)}')
+    log_list(result_words, log)
 
-                            # log.write('-' * 80)
-                            # log.write(f'Uppercase: {len(result_upper)}')
-                            # log_list(result_upper, log)
+    log.write('-' * 80)
+    log.write(f'Uppercase: {len(result_upper)}')
+    log_list(result_upper, log)
 
-                            # log.write('-' * 80)
-                            # log.write(f'Sums: {len(result_sums)}')
-                            # log_list(result_sums, log)
+    log.write('-' * 80)
+    log.write(f'Sums: {len(result_sums)}')
+    log_list(result_sums, log)
 
-                            # log.write('-' * 80)
-                            # log.write(f'Names: {len(result_names)}')
-                            # log_list(result_names, log)
+    log.write('-' * 80)
+    log.write(f'Names: {len(result_names)}')
+    log_list(result_names, log)
 
-                            # log.write(f'Primes: {len(result_primes)}')
-                            # log.write(f'Words: {len(result_words)}')
-                            # log.write(f'Uppercase: {len(result_upper)}')
-                            # log.write(f'Sums: {len(result_sums)}')
-                            # log.write(f'Names: {len(result_names)}')
-                            log.write(f'Prime Size: {prime_size}')
-                            log.write(f'Word Size: {word_size}')
-                            log.write(f'Uppercase Size: {text_size}')
-                            log.write(f'Sum Size: {sum_size}')
-                            log.write(f'Name Size: {url_size}')
-                            log.stop_timer(f'Finished processes {count} tasks')
+    log.write(f'Primes: {len(result_primes)}')
+    log.write(f'Words: {len(result_words)}')
+    log.write(f'Uppercase: {len(result_upper)}')
+    log.write(f'Sums: {len(result_sums)}')
+    log.write(f'Names: {len(result_names)}')
+    # log.write(f'Prime Size: {prime_size}')
+    # log.write(f'Word Size: {word_size}')
+    # log.write(f'Uppercase Size: {text_size}')
+    # log.write(f'Sum Size: {sum_size}')
+    # log.write(f'Name Size: {url_size}')
+    log.stop_timer(f'Finished processes {count} tasks')
 
 if __name__ == '__main__':
     main()

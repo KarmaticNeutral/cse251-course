@@ -131,7 +131,7 @@ def main():
         for url in urls:
             create_name(get_task_num(numbers), url)
     else:
-        number_tasks = 1
+        number_tasks = 50
         create_name(get_task_num(numbers), urls[0])
 
     for i in range(number_tasks):
