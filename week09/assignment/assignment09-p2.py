@@ -89,8 +89,7 @@ def solve_find_end(maze):
     stop = False
     (row, col) = maze.get_start_pos()
     maze.move(row, col, COLOR)
-    path = path_helper(maze, row, col, get_color())
-    print(path)
+    path_helper(maze, row, col, get_color())
     return path
 
 def path_helper(maze, row, col, color):
