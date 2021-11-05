@@ -2,7 +2,7 @@
 Course: CSE 251 
 Lesson Week: 09
 File: assignment09-p1.py 
-Author: <Add name here>
+Author: Tim Taylor
 
 Purpose: Part 1 of assignment 09, finding a path to the end position in a maze
 
@@ -32,8 +32,23 @@ def solve_path(maze):
         The path is a list of positions, (x, y) """
         
     # TODO start add code here
-    path = []
+    (row, col) = maze.get_start_pos()
+    maze.move(row, col, COLOR)
+    path = path_helper(maze, row, col)
+    print(path)
     return path
+
+def path_helper(maze, row, col):
+    if maze.at_end(row, col):
+        return [(row, col)]
+    moves = maze.get_possible_moves(row, col)
+    for m in moves:
+        (new_row, new_col) = m
+        maze.move(new_row, new_col, COLOR)
+        p = path_helper(maze, new_row, new_col)
+        if isinstance(p, list):
+            return [(row, col)] + p
+    return
 
 
 def get_path(log, filename):

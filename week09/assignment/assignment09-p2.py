@@ -2,7 +2,7 @@
 Course: CSE 251 
 Lesson Week: 09
 File: assignment09-p2.py 
-Author: <Add name here>
+Author: Tim Taylor
 
 Purpose: Part 2 of assignment 09, finding the end position in the maze
 
@@ -77,9 +77,33 @@ def get_color():
 def solve_find_end(maze):
     """ finds the end position using threads.  Nothing is returned """
     # When one of the threads finds the end position, stop all of them
+    (row, col) = maze.get_start_pos()
+    maze.move(row, col, COLOR)
+    path = path_helper(maze, row, col, get_color())
+    print(path)
+    return path
 
-
-    pass
+def path_helper(maze, row, col, color):
+    global stop
+    if stop == True:
+        return
+    if maze.at_end(row, col):
+        stop = True
+        return 
+    moves = maze.get_possible_moves(row, col)
+    print(f'Location: {row, col} \nMoves: {moves} \n\n')
+    if len(moves) > 0:
+        (nrow, ncol) = moves[0]
+        path_helper(maze, nrow, ncol, color)
+        threads = []
+        for m in moves[1:]:
+            (nrow, ncol) = m
+            maze.move(nrow, ncol, color)
+            threads.append(threading.Thread(target=path_helper, args=(maze, nrow, ncol, get_color())))
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
 
 def find_end(log, filename, delay):
