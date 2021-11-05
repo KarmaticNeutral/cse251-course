@@ -18,12 +18,18 @@ change the program to display the found path to the exit position.
 
 What would be your strategy?  
 
-<Answer here>
-
+One approach that I know would work is to have each thread track its own
+path and the paths of all of its child threads. This way we could check the
+last value of each child thread when they finish running and if any of them
+has a last value that is the same as the finish location of the maze, we
+would then prepend the current thread's path onto the path of the thread
+that ended at the finish point and continue passing it back up until we
+reach the top and then return the whole path.
 
 Why would it work?
 
-<Answer here>
+Python lists can be manipulated from within a thread as they are passed
+by reference.
 
 """
 import math
@@ -77,6 +83,10 @@ def get_color():
 def solve_find_end(maze):
     """ finds the end position using threads.  Nothing is returned """
     # When one of the threads finds the end position, stop all of them
+    global thread_count
+    global stop
+    thread_count = 0
+    stop = False
     (row, col) = maze.get_start_pos()
     maze.move(row, col, COLOR)
     path = path_helper(maze, row, col, get_color())
@@ -85,21 +95,26 @@ def solve_find_end(maze):
 
 def path_helper(maze, row, col, color):
     global stop
+    global thread_count
     if stop == True:
         return
     if maze.at_end(row, col):
         stop = True
         return 
     moves = maze.get_possible_moves(row, col)
-    print(f'Location: {row, col} \nMoves: {moves} \n\n')
+    #print(f'Location: {row, col} \nMoves: {moves} \n\n')
     if len(moves) > 0:
         (nrow, ncol) = moves[0]
+        maze.move(nrow, ncol, color)
         path_helper(maze, nrow, ncol, color)
         threads = []
         for m in moves[1:]:
             (nrow, ncol) = m
-            maze.move(nrow, ncol, color)
-            threads.append(threading.Thread(target=path_helper, args=(maze, nrow, ncol, get_color())))
+            if maze.can_move_here(nrow, ncol):
+                ncolor = get_color()
+                maze.move(nrow, ncol, ncolor)
+                threads.append(threading.Thread(target=path_helper, args=(maze, nrow, ncol, ncolor)))
+                thread_count += 1
         for t in threads:
             t.start()
         for t in threads:

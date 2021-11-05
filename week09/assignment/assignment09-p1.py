@@ -24,18 +24,14 @@ from cse251 import *
 SCREEN_SIZE = 800
 COLOR = (0, 0, 255)
 
-
 # TODO add any functions
 
 def solve_path(maze):
     """ Solve the maze and return the path found between the start and end positions.  
         The path is a list of positions, (x, y) """
-        
-    # TODO start add code here
     (row, col) = maze.get_start_pos()
     maze.move(row, col, COLOR)
     path = path_helper(maze, row, col)
-    print(path)
     return path
 
 def path_helper(maze, row, col):
@@ -44,16 +40,18 @@ def path_helper(maze, row, col):
     moves = maze.get_possible_moves(row, col)
     for m in moves:
         (new_row, new_col) = m
-        maze.move(new_row, new_col, COLOR)
-        p = path_helper(maze, new_row, new_col)
-        if isinstance(p, list):
-            return [(row, col)] + p
+        if maze.can_move_here(new_row, new_col):
+            maze.move(new_row, new_col, COLOR)
+            p = path_helper(maze, new_row, new_col)
+            if isinstance(p, list):
+                return [(row, col)] + p
+            else:
+                maze.restore(new_row, new_col)
     return
 
 
 def get_path(log, filename):
     """ Do not change this function """
-
     # create a Screen Object that will contain all of the drawing commands
     screen = Screen(SCREEN_SIZE, SCREEN_SIZE)
     screen.background((255, 255, 0))
