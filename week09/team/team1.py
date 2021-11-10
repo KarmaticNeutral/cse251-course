@@ -17,7 +17,7 @@ is not being used by another philosopher. After an individual philosopher
 finishes eating, they need to put down both forks so that the forks become
 available to others. A philosopher can only take the fork on their right or
 the one on their left as they become available and they cannot start eating
-before getting both forks.  When a philosopher is finished eating, they think 
+before getting both forks.  When a philosopher is finished eating, they think
 for a little while.
 
 Eating is not limited by the remaining amounts of spaghetti or stomach space;
@@ -36,7 +36,7 @@ Instructions:
 
 - You have Locks and Semaphores that you can use.
 - Remember that lock.acquire() has an argument called timeout.
-- philosophers need to think for 3 to 5 seconds when they get both forks.  
+- philosophers need to think for 3 to 5 seconds when they get both forks.
   When the number of philosophers has eaten MAX_MEALS times, stop the philosophers
   from trying to eat and any philosophers eating will put down their forks when finished.
 - You want as many philosophers to eat and think concurrently.
@@ -57,16 +57,49 @@ import threading
 PHILOSOPHERS = 5
 MAX_MEALS = PHILOSOPHERS * 5
 
+def brain(id, fork1, fork2):
+    times_eaten = 0
+    def eat():
+        fork1.acquire()
+        gotRight = fork2.acquire(timeout=5)
+        if gotRight:
+            time.sleep(0.5)
+            print(str(id) + " Ate.")
+        else:
+            fork1.release()
+            eat()
+            return
+        fork1.release()
+        fork2.release()
+
+    def think():
+        time.sleep(0.5)
+
+    while True:
+        eat()
+        times_eaten += 1
+        think()
+        if times_eaten > MAX_MEALS:
+            break
+    print("Philosopher " + str(id) + " ate " + str(times_eaten) + " meals")
+
 
 def main():
     # TODO - create the forks
     # TODO - create PHILOSOPHERS philosophers
     # TODO - Start them eating and thinking
     # TODO - Display how many times each philosopher ate
+    forks = []
+    for i in range(PHILOSOPHERS):
+        forks.append(threading.Lock())
+    phils = []
+    for j in range(PHILOSOPHERS):
+        phils.append(threading.Thread(target=brain,args=(j, forks[j], forks[(j + 1) % PHILOSOPHERS])))
 
-    pass
-
-
+    for p in phils:
+        p.start()
+    for p in phils:
+        p.join()
 
 if __name__ == '__main__':
     main()
