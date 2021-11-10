@@ -82,43 +82,44 @@ def get_color():
 
 def solve_find_end(maze):
     """ finds the end position using threads.  Nothing is returned """
-    # When one of the threads finds the end position, stop all of them
+    def path_helper(row, col, color):
+        print("helper" + str(color))
+        global stop
+        global thread_count
+        if stop == True:
+            return
+        if maze.at_end(row, col):
+            print("Hit Stop")
+            stop = True
+            return 
+        moves = maze.get_possible_moves(row, col)
+        if len(moves) > 0:
+            threads = []
+            for m in moves[1:]:
+                (nrow, ncol) = m
+                ncolor = get_color()
+                if not stop:
+                    if maze.can_move_here(nrow, ncol):
+                        maze.move(nrow, ncol, ncolor)
+                        threads.append(threading.Thread(target=path_helper, args=(nrow, ncol, ncolor)))
+                        thread_count += 1
+            for t in threads:
+                t.start()
+            (nrow, ncol) = moves[0]
+            if maze.can_move_here(nrow, ncol):
+                maze.move(nrow, ncol, color)
+                path_helper(nrow, ncol, color)
+            for t in threads:
+                t.join()
+
     global thread_count
     global stop
     thread_count = 0
     stop = False
     (row, col) = maze.get_start_pos()
     maze.move(row, col, COLOR)
-    path_helper(maze, row, col, get_color())
-    return path
-
-def path_helper(maze, row, col, color):
-    global stop
-    global thread_count
-    if stop == True:
-        return
-    if maze.at_end(row, col):
-        stop = True
-        return 
-    moves = maze.get_possible_moves(row, col)
-    #print(f'Location: {row, col} \nMoves: {moves} \n\n')
-    if len(moves) > 0:
-        (nrow, ncol) = moves[0]
-        maze.move(nrow, ncol, color)
-        path_helper(maze, nrow, ncol, color)
-        threads = []
-        for m in moves[1:]:
-            (nrow, ncol) = m
-            if maze.can_move_here(nrow, ncol):
-                ncolor = get_color()
-                maze.move(nrow, ncol, ncolor)
-                threads.append(threading.Thread(target=path_helper, args=(maze, nrow, ncol, ncolor)))
-                thread_count += 1
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-
+    movement_lock = threading.Lock()
+    path_helper(row, col, get_color())
 
 def find_end(log, filename, delay):
     """ Do not change this function """

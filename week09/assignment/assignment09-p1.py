@@ -29,25 +29,24 @@ COLOR = (0, 0, 255)
 def solve_path(maze):
     """ Solve the maze and return the path found between the start and end positions.  
         The path is a list of positions, (x, y) """
+    def path_helper(row, col):
+        if maze.at_end(row, col):
+            return [(row, col)]
+        moves = maze.get_possible_moves(row, col)
+        for m in moves:
+            (new_row, new_col) = m
+            if maze.can_move_here(new_row, new_col):
+                maze.move(new_row, new_col, COLOR)
+                p = path_helper(new_row, new_col)
+                if isinstance(p, list):
+                    return [(row, col)] + p
+                else:
+                    maze.restore(new_row, new_col)
+        return
     (row, col) = maze.get_start_pos()
     maze.move(row, col, COLOR)
-    path = path_helper(maze, row, col)
+    path = path_helper(row, col)
     return path
-
-def path_helper(maze, row, col):
-    if maze.at_end(row, col):
-        return [(row, col)]
-    moves = maze.get_possible_moves(row, col)
-    for m in moves:
-        (new_row, new_col) = m
-        if maze.can_move_here(new_row, new_col):
-            maze.move(new_row, new_col, COLOR)
-            p = path_helper(maze, new_row, new_col)
-            if isinstance(p, list):
-                return [(row, col)] + p
-            else:
-                maze.restore(new_row, new_col)
-    return
 
 
 def get_path(log, filename):
