@@ -83,7 +83,7 @@ def get_color():
 def solve_find_end(maze):
     """ finds the end position using threads.  Nothing is returned """
     def path_helper(row, col, color):
-        print("helper" + str(color))
+        print("\n\nhelper" + str(color))
         global stop
         global thread_count
         if stop == True:
@@ -93,6 +93,8 @@ def solve_find_end(maze):
             stop = True
             return 
         moves = maze.get_possible_moves(row, col)
+        print("Moves")
+        print(moves)
         if len(moves) > 0:
             threads = []
             for m in moves[1:]:

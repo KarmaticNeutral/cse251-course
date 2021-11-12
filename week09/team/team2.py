@@ -64,8 +64,55 @@ import threading
 
 
 PHILOSOPHERS = 5
-MAX_MEALS = PHILOSOPHERS * 5
+MAX_MEALS = PHILOSOPHERS * 100
 
+class Waiter:
+    def __init__(self):
+        self.serving_lock = threading.Lock()
+        self.is_eating = [False] * PHILOSOPHERS
+        self.times_eaten = [0] * PHILOSOPHERS
+    
+    def canIEat(self, philosopherId):
+        self.serving_lock.acquire()
+        if min(self.times_eaten) > (self.times_eaten[philosopherId] - 3) and not self.is_eating[philosopherId - 1] and not self.is_eating[(philosopherId + 1) % PHILOSOPHERS]:
+            self.times_eaten[philosopherId] += 1
+            self.is_eating[philosopherId] = True
+            self.serving_lock.release()
+            return True
+        self.serving_lock.release()
+        return False
+
+    def doneEating(self, philosopherId):
+        self.is_eating[philosopherId] = False
+
+    def allTimesEaten(self):
+        return self.times_eaten
+
+    def done(self):
+        return MAX_MEALS <= sum(self.times_eaten)
+
+def brain(id, leftFork, rightFork, waiter):
+    def eat():
+        if waiter.canIEat(id):
+            leftFork.acquire()
+            rightFork.acquire()
+            print(str(id) + " is eating")
+            time.sleep(0.5)
+            leftFork.release()
+            rightFork.release()
+            waiter.doneEating(id)
+        else:
+            time.sleep(0.1)
+            eat()
+
+    def think():
+        time.sleep(0.5)
+
+    while True:
+        eat()
+        think()
+        if waiter.done():
+            break
 
 def main():
     # TODO - create the waiter (A class would be best here)
@@ -73,10 +120,20 @@ def main():
     # TODO - create PHILOSOPHERS philosophers
     # TODO - Start them eating and thinking
     # TODO - Display how many times each philosopher ate
+    waiter = Waiter()
+    forks = []
+    for i in range(PHILOSOPHERS):
+        forks.append(threading.Lock())
+    phils = []
+    for j in range(PHILOSOPHERS):
+        phils.append(threading.Thread(target=brain,args=(j, forks[j], forks[(j + 1) % PHILOSOPHERS], waiter)))
 
-    pass
+    for p in phils:
+        p.start()
+    for p in phils:
+        p.join()
 
-
+    print(waiter.allTimesEaten())
 
 if __name__ == '__main__':
     main()
