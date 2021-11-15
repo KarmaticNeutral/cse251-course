@@ -83,34 +83,38 @@ def get_color():
 def solve_find_end(maze):
     """ finds the end position using threads.  Nothing is returned """
     def path_helper(row, col, color):
-        print("\n\nhelper" + str(color))
         global stop
         global thread_count
         if stop == True:
             return
         if maze.at_end(row, col):
-            print("Hit Stop")
             stop = True
             return 
         moves = maze.get_possible_moves(row, col)
-        print("Moves")
-        print(moves)
         if len(moves) > 0:
             threads = []
             for m in moves[1:]:
                 (nrow, ncol) = m
                 ncolor = get_color()
                 if not stop:
+                    movement_lock.acquire()
                     if maze.can_move_here(nrow, ncol):
                         maze.move(nrow, ncol, ncolor)
+                        movement_lock.release()
                         threads.append(threading.Thread(target=path_helper, args=(nrow, ncol, ncolor)))
                         thread_count += 1
+                    else:
+                        movement_lock.release()
             for t in threads:
                 t.start()
             (nrow, ncol) = moves[0]
+            movement_lock.acquire()
             if maze.can_move_here(nrow, ncol):
                 maze.move(nrow, ncol, color)
+                movement_lock.release()
                 path_helper(nrow, ncol, color)
+            else:
+                movement_lock.release()
             for t in threads:
                 t.join()
 
