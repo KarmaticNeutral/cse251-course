@@ -2,7 +2,7 @@
 Course: CSE 251
 Lesson Week: 10
 File: assignment.py
-Author: <your name>
+Author: Timothy Taylor
 
 Purpose: assignment for week 10 - reader writer problem
 
@@ -55,6 +55,15 @@ import multiprocessing as mp
 
 BUFFER_SIZE = 10
 
+def writer(sharedList, listLock, start, end):
+    for i in range(start, end):
+        listLock.acquire()
+        sharedList[i] = i
+        listLock.release()
+
+def reader(sharedList, listLock):
+
+
 def main():
 
     # This is the number of values that the writer will send to the reader
@@ -64,12 +73,27 @@ def main():
     smm.start()
 
     # TODO - Create a ShareableList to be used between the processes
+    sharedList = mp.shared_memory.ShareableList([0] * items_to_send)
 
     # TODO - Create any lock(s) or semaphore(s) that you feel you need
+    listLock = mp.Lock()
 
     # TODO - create reader and writer processes
+    writer1 = mp.Process(target=writer, args=(sharedList, listLock, 0, items_to_send // 2))
+    writer2 = mp.Process(target=writer, args=(sharedList, listLock, items_to_send // 2 + 1, items_to_send))
+    reader1 = mp.Process(target=reader, args=(sharedList, listLock))
+    reader2 = mp.Process(target=reader, args=(sharedList, listLock))
 
     # TODO - Start the processes and wait for them to finish
+    writer1.start()
+    writer2.start()
+    reader1.start()
+    reader2.start()
+
+    writer1.join()
+    writer2.join()
+    reader1.join()
+    reader2.join()
 
     print(f'{items_to_send} values sent')
 
