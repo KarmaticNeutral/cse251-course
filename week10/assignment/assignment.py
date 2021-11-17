@@ -76,9 +76,7 @@ def writer(id, sharedList, listLock, items_to_send):
 		listLock.acquire()
 		while sharedList[READ_INDEX] == (sharedList[WRITE_INDEX] + 1) % BUFFER_SIZE:
 			listLock.release()
-			#print(f'Writer #{id}:')
-			#printSharedList(sharedList)
-			time.sleep(0.1)
+			time.sleep(0.01)
 			listLock.acquire()
 		sharedList[sharedList[WRITE_INDEX]] = sharedList[NEXT_VALUE]
 		sharedList[NEXT_VALUE] += 1
@@ -86,8 +84,6 @@ def writer(id, sharedList, listLock, items_to_send):
 		listLock.release()
 	listLock.acquire()
 	sharedList[DONE_INDEX] += 1
-	#print(f'Writer #{id} Done')
-	#printSharedList(sharedList)
 	listLock.release()
 	
 
@@ -97,16 +93,12 @@ def reader(id, sharedList, listLock):
 		if sharedList[READ_INDEX] == sharedList[WRITE_INDEX]:
 			if sharedList[DONE_INDEX] == WRITERS:
 				listLock.release()
-				#print(f'Reader #{id} Done')
-				#printSharedList(sharedList)
 				break
 			else:
 				listLock.release()
-				#print(f'Reader #{id}:')
-				#printSharedList(sharedList)
-				time.sleep(0.1)
+				#TODO add 2 semaphors, for how full or empty, and remove sleeps
+				time.sleep(0.01)
 		else:
-			#print(sharedList[sharedList[READ_INDEX]])
 			sharedList[sharedList[READ_INDEX]] = 0
 			sharedList[READ_INDEX] = (sharedList[READ_INDEX] + 1) % 10
 			sharedList[READ_COUNT] += 1
@@ -116,7 +108,6 @@ def reader(id, sharedList, listLock):
 def main():
 	# This is the number of values that the writer will send to the reader
 	items_to_send = random.randint(10, 100)
-	#print(items_to_send)
 
 	smm = SharedMemoryManager()
 	smm.start()
