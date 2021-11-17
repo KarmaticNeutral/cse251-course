@@ -53,7 +53,7 @@ int isPrime(int number)
 }
 
 // ----------------------------------------------------------------------------
-void findPrimes(void* record)
+void *findPrimes(void* record)
 {
   cout << endl << "Starting findPrimes" << endl;
 
@@ -69,14 +69,12 @@ void findPrimes(void* record)
     }
   }
 
-  return;
+  return NULL;
 }
 
 // ----------------------------------------------------------------------------
 int main()
 {
-  srand(time(0));
-
   // Create the array of numbers and assign random values to them
   int arrayValues[NUMBERS];
   for (int i = 0; i < NUMBERS; i++)
@@ -86,12 +84,36 @@ int main()
   }
   cout << endl;
 
+  srand(time(0));
+
+  int N = 4;
+
+  struct args recs[N];
+  int count = NUMBERS / N;
+  for (int i = 0; i < N; i++) {
+    if (i == N - 1) {
+      recs[i] = { arrayValues, i * count, NUMBERS - 1};
+    } else {
+      recs[i] = { arrayValues, i * count, ((i + 1) * count) - 1};
+    }
+  }
+
+  pthread_t threads[N];
+  for (int i = 0; i < N; i++) {
+    pthread_create(&threads[i], NULL, findPrimes, &recs[i]);
+  }
+
+  for (int i = 0; i < N; i++) {
+    pthread_join(threads[i], NULL);
+  }
+
+
   // Create structure that will be used to pass the array and the
   // start of end of the array to another function
-  struct args rec = { arrayValues, 0, NUMBERS - 1 };
+  
 
   // Find the primes in the array
-  findPrimes(&rec);
+  //findPrimes(&rec);
 
   return 0;
 }

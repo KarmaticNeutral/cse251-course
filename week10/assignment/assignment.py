@@ -34,7 +34,7 @@ Instructions:
   will contain different "sections".  There can only be one shareable list used
   between your processes.
   1) BUFFER_SIZE number of positions for data transfer. This buffer area must
-     act like a queue - First In First Out.
+	 act like a queue - First In First Out.
   2) current value used by writers for consecutive order of values to send
   3) Any indexes that the processes need to keep track of the data queue
   4) Any other values you need for the assignment
@@ -47,63 +47,114 @@ Instructions:
 Add any comments for me:
 
 
-
 """
 import random
 from multiprocessing.managers import SharedMemoryManager
 import multiprocessing as mp
+import time
 
 BUFFER_SIZE = 10
+NEXT_VALUE = BUFFER_SIZE
+READ_INDEX = BUFFER_SIZE + 1
+WRITE_INDEX = BUFFER_SIZE + 2
+DONE_INDEX = BUFFER_SIZE + 3
+READ_COUNT = BUFFER_SIZE + 4
 
-def writer(sharedList, listLock, start, end):
-    for i in range(start, end):
-        listLock.acquire()
-        sharedList[i] = i
-        listLock.release()
+WRITERS = 2
+READERS = 2
 
-def reader(sharedList, listLock):
+def printSharedList(sharedList):
+	print(sharedList)
+	print(f'Next Val: {sharedList[NEXT_VALUE]}')
+	print(f'Read Index: {sharedList[READ_INDEX]}')
+	print(f'Write Index: {sharedList[WRITE_INDEX]}')
+	print(f'Finished Processes: {sharedList[DONE_INDEX]}')
+	print(f'Read Values: {sharedList[READ_COUNT]}')
 
+def writer(id, sharedList, listLock, items_to_send):
+	for _ in range(items_to_send):
+		listLock.acquire()
+		while sharedList[READ_INDEX] == (sharedList[WRITE_INDEX] + 1) % BUFFER_SIZE:
+			listLock.release()
+			#print(f'Writer #{id}:')
+			#printSharedList(sharedList)
+			time.sleep(0.1)
+			listLock.acquire()
+		sharedList[sharedList[WRITE_INDEX]] = sharedList[NEXT_VALUE]
+		sharedList[NEXT_VALUE] += 1
+		sharedList[WRITE_INDEX] = (sharedList[WRITE_INDEX] + 1) % BUFFER_SIZE
+		listLock.release()
+	listLock.acquire()
+	sharedList[DONE_INDEX] += 1
+	#print(f'Writer #{id} Done')
+	#printSharedList(sharedList)
+	listLock.release()
+	
+
+def reader(id, sharedList, listLock):
+	while True:
+		listLock.acquire()
+		if sharedList[READ_INDEX] == sharedList[WRITE_INDEX]:
+			if sharedList[DONE_INDEX] == WRITERS:
+				listLock.release()
+				#print(f'Reader #{id} Done')
+				#printSharedList(sharedList)
+				break
+			else:
+				listLock.release()
+				#print(f'Reader #{id}:')
+				#printSharedList(sharedList)
+				time.sleep(0.1)
+		else:
+			#print(sharedList[sharedList[READ_INDEX]])
+			sharedList[sharedList[READ_INDEX]] = 0
+			sharedList[READ_INDEX] = (sharedList[READ_INDEX] + 1) % 10
+			sharedList[READ_COUNT] += 1
+			listLock.release()
+			
 
 def main():
+	# This is the number of values that the writer will send to the reader
+	items_to_send = random.randint(10, 100)
+	#print(items_to_send)
 
-    # This is the number of values that the writer will send to the reader
-    items_to_send = random.randint(1000, 10000)
+	smm = SharedMemoryManager()
+	smm.start()
 
-    smm = SharedMemoryManager()
-    smm.start()
+	# TODO - Create a ShareableList to be used between the processes
+	sharedList = mp.shared_memory.ShareableList([0] * (BUFFER_SIZE + 5))
+	
+	# TODO - Create any lock(s) or semaphore(s) that you feel you need
+	listLock = mp.Lock()
 
-    # TODO - Create a ShareableList to be used between the processes
-    sharedList = mp.shared_memory.ShareableList([0] * items_to_send)
+	# TODO - create reader and writer processes
+	writers = []
+	remainder = items_to_send % WRITERS
+	for i in range(WRITERS):
+		writers.append(mp.Process(target=writer, args=(i, sharedList, listLock, items_to_send // WRITERS if i < remainder else (items_to_send // WRITERS) + 1)))
+	readers = []
+	for i in range(READERS):
+		readers.append(mp.Process(target=reader, args=(i, sharedList, listLock)))
 
-    # TODO - Create any lock(s) or semaphore(s) that you feel you need
-    listLock = mp.Lock()
+	# TODO - Start the processes and wait for them to finish
+	for w in writers:
+		w.start()
+	for r in readers:
+		r.start()
+	for w in writers:
+		w.join()
+	for r in readers:
+		r.join()
 
-    # TODO - create reader and writer processes
-    writer1 = mp.Process(target=writer, args=(sharedList, listLock, 0, items_to_send // 2))
-    writer2 = mp.Process(target=writer, args=(sharedList, listLock, items_to_send // 2 + 1, items_to_send))
-    reader1 = mp.Process(target=reader, args=(sharedList, listLock))
-    reader2 = mp.Process(target=reader, args=(sharedList, listLock))
+	print(f'{items_to_send} values sent')
+	# TODO - Display the number of numbers/items received by the reader.
+	#        Can not use "items_to_send", must be a value collected
+	#        by the reader processes.
+	# print(f'{<your variable>} values received')
+	print(f'{sharedList[READ_COUNT]} values read')
 
-    # TODO - Start the processes and wait for them to finish
-    writer1.start()
-    writer2.start()
-    reader1.start()
-    reader2.start()
-
-    writer1.join()
-    writer2.join()
-    reader1.join()
-    reader2.join()
-
-    print(f'{items_to_send} values sent')
-
-    # TODO - Display the number of numbers/items received by the reader.
-    #        Can not use "items_to_send", must be a value collected
-    #        by the reader processes.
-    # print(f'{<your variable>} values received')
-
-    smm.shutdown()
+	smm.shutdown()
 
 
 if __name__ == '__main__':
-    main()
+	main()
