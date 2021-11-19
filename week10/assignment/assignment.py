@@ -71,13 +71,11 @@ def printSharedList(sharedList):
 	print(f'Finished Processes: {sharedList[DONE_INDEX]}')
 	print(f'Read Values: {sharedList[READ_COUNT]}')
 
-def writer(id, sharedList, listLock, items_to_send):
+def writer(id, sharedList, listLock, emptySpaces, filledSpaces, items_to_send):
 	for _ in range(items_to_send):
 		listLock.acquire()
-		while sharedList[READ_INDEX] == (sharedList[WRITE_INDEX] + 1) % BUFFER_SIZE:
-			listLock.release()
-			time.sleep(0.01)
-			listLock.acquire()
+		emptySpaces.acquire()
+		filledSpaces.release()
 		sharedList[sharedList[WRITE_INDEX]] = sharedList[NEXT_VALUE]
 		sharedList[NEXT_VALUE] += 1
 		sharedList[WRITE_INDEX] = (sharedList[WRITE_INDEX] + 1) % BUFFER_SIZE
@@ -86,24 +84,21 @@ def writer(id, sharedList, listLock, items_to_send):
 	sharedList[DONE_INDEX] += 1
 	listLock.release()
 	
-
-def reader(id, sharedList, listLock):
+def reader(id, sharedList, listLock, emptySpaces, filledSpaces):
 	while True:
+		print("Reading Loop")
 		listLock.acquire()
-		if sharedList[READ_INDEX] == sharedList[WRITE_INDEX]:
-			if sharedList[DONE_INDEX] == WRITERS:
+		if sharedList[DONE_INDEX] == WRITERS: 
+			if sharedList[READ_INDEX] == sharedList[WRITE_INDEX]:
 				listLock.release()
 				break
-			else:
-				listLock.release()
-				#TODO add 2 semaphors, for how full or empty, and remove sleeps
-				time.sleep(0.01)
 		else:
+			emptySpaces.release()
+			filledSpaces.acquire()
 			sharedList[sharedList[READ_INDEX]] = 0
 			sharedList[READ_INDEX] = (sharedList[READ_INDEX] + 1) % 10
 			sharedList[READ_COUNT] += 1
 			listLock.release()
-			
 
 def main():
 	# This is the number of values that the writer will send to the reader
@@ -117,15 +112,17 @@ def main():
 	
 	# TODO - Create any lock(s) or semaphore(s) that you feel you need
 	listLock = mp.Lock()
+	emptySpaces = mp.Semaphore(10)
+	filledSpaces = mp.Semaphore(0)
 
 	# TODO - create reader and writer processes
 	writers = []
 	remainder = items_to_send % WRITERS
 	for i in range(WRITERS):
-		writers.append(mp.Process(target=writer, args=(i, sharedList, listLock, items_to_send // WRITERS if i < remainder else (items_to_send // WRITERS) + 1)))
+		writers.append(mp.Process(target=writer, args=(i, sharedList, listLock, emptySpaces, filledSpaces, items_to_send // WRITERS if i < remainder else (items_to_send // WRITERS) + 1)))
 	readers = []
 	for i in range(READERS):
-		readers.append(mp.Process(target=reader, args=(i, sharedList, listLock)))
+		readers.append(mp.Process(target=reader, args=(i, sharedList, listLock, emptySpaces, filledSpaces)))
 
 	# TODO - Start the processes and wait for them to finish
 	for w in writers:
