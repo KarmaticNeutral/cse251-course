@@ -59,6 +59,7 @@ READ_INDEX = BUFFER_SIZE + 1
 WRITE_INDEX = BUFFER_SIZE + 2
 DONE_INDEX = BUFFER_SIZE + 3
 READ_COUNT = BUFFER_SIZE + 4
+WRITTEN_COUNT = BUFFER_SIZE + 5
 
 WRITERS = 2
 READERS = 2
@@ -70,13 +71,15 @@ def printSharedList(sharedList):
 	print(f'Write Index: {sharedList[WRITE_INDEX]}')
 	print(f'Finished Processes: {sharedList[DONE_INDEX]}')
 	print(f'Read Values: {sharedList[READ_COUNT]}')
+	print(f'Written Values: {sharedList[WRITTEN_COUNT]}')
 
 def writer(id, sharedList, listLock, emptySpaces, filledSpaces, items_to_send):
 	for _ in range(items_to_send):
-		listLock.acquire()
 		emptySpaces.acquire()
 		filledSpaces.release()
+		listLock.acquire()
 		sharedList[sharedList[WRITE_INDEX]] = sharedList[NEXT_VALUE]
+		sharedList[WRITTEN_COUNT] += 1
 		sharedList[NEXT_VALUE] += 1
 		sharedList[WRITE_INDEX] = (sharedList[WRITE_INDEX] + 1) % BUFFER_SIZE
 		listLock.release()
@@ -86,29 +89,34 @@ def writer(id, sharedList, listLock, emptySpaces, filledSpaces, items_to_send):
 	
 def reader(id, sharedList, listLock, emptySpaces, filledSpaces):
 	while True:
-		print("Reading Loop")
 		listLock.acquire()
-		if sharedList[DONE_INDEX] == WRITERS: 
-			if sharedList[READ_INDEX] == sharedList[WRITE_INDEX]:
-				listLock.release()
-				break
-		else:
-			emptySpaces.release()
-			filledSpaces.acquire()
-			sharedList[sharedList[READ_INDEX]] = 0
-			sharedList[READ_INDEX] = (sharedList[READ_INDEX] + 1) % 10
-			sharedList[READ_COUNT] += 1
+		print("######## CHECK LIST ", id)
+		#printSharedList(sharedList)
+		if sharedList[READ_INDEX] == sharedList[WRITE_INDEX] and sharedList[DONE_INDEX] == WRITERS and sharedList[sharedList[READ_INDEX]] == 0: 
 			listLock.release()
+			print("Break Statement", id)
+			break
+		emptySpaces.release()
+		filledSpaces.acquire()
+		print(id, ">>>>>>>>>>>>>>>", sharedList[sharedList[READ_INDEX]])
+		sharedList[sharedList[READ_INDEX]] = 0
+		sharedList[READ_INDEX] = (sharedList[READ_INDEX] + 1) % 10
+		sharedList[READ_COUNT] += 1
+		#print("######## AFTER LIST")
+		#printSharedList(sharedList)
+		listLock.release()
 
 def main():
 	# This is the number of values that the writer will send to the reader
 	items_to_send = random.randint(10, 100)
+	print(items_to_send)
 
 	smm = SharedMemoryManager()
 	smm.start()
 
 	# TODO - Create a ShareableList to be used between the processes
-	sharedList = mp.shared_memory.ShareableList([0] * (BUFFER_SIZE + 5))
+	sharedList = mp.shared_memory.ShareableList([0] * (BUFFER_SIZE + 6))
+	sharedList[NEXT_VALUE] = 1
 	
 	# TODO - Create any lock(s) or semaphore(s) that you feel you need
 	listLock = mp.Lock()
@@ -119,7 +127,7 @@ def main():
 	writers = []
 	remainder = items_to_send % WRITERS
 	for i in range(WRITERS):
-		writers.append(mp.Process(target=writer, args=(i, sharedList, listLock, emptySpaces, filledSpaces, items_to_send // WRITERS if i < remainder else (items_to_send // WRITERS) + 1)))
+		writers.append(mp.Process(target=writer, args=(i, sharedList, listLock, emptySpaces, filledSpaces, items_to_send // WRITERS if i + 1 > remainder else (items_to_send // WRITERS) + 1)))
 	readers = []
 	for i in range(READERS):
 		readers.append(mp.Process(target=reader, args=(i, sharedList, listLock, emptySpaces, filledSpaces)))
@@ -140,9 +148,10 @@ def main():
 	#        by the reader processes.
 	# print(f'{<your variable>} values received')
 	print(f'{sharedList[READ_COUNT]} values read')
+	printSharedList(sharedList)
+	print(f'Intended Values:', items_to_send)
 
 	smm.shutdown()
-
 
 if __name__ == '__main__':
 	main()
