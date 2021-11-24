@@ -45,23 +45,139 @@ import multiprocessing as mp
 
 # -------------------------------------------------------------------
 class Queue_t:
-	pass
+    def __init__(self):
+        self.data = []
+        self.lock = threading.Lock()
+
+    def size(self):
+        self.lock.acquire()
+        size = len(self.data)
+        self.lock.release()
+        return size
+
+    def get(self):
+        self.lock.acquire()
+        val = self.data.pop()
+        self.lock.release()
+        return val
+
+    def put(self, item):
+        self.lock.acquire()
+        self.data.insert(0, item)
+        self.lock.release()
 
 # -------------------------------------------------------------------
 class Stack_t:
-	pass
+    def __init__(self):
+        self.data = []
+        self.lock = threading.Lock()
+
+    def push(self, item):
+        self.lock.acquire()
+        self.data.append(item)
+        self.lock.release()
+    
+    def pop(self):
+        self.lock.acquire()
+        val = self.data.pop()
+        self.lock.release()
+        return val
 
 # -------------------------------------------------------------------
 class Queue_p:
-	pass
+    def __init__(self):
+        self.data = []
+        self.lock = mp.Lock()
+
+    def size(self):
+        self.lock.acquire()
+        size = len(self.data)
+        self.lock.release()
+        return size
+
+    def get(self):
+        self.lock.acquire()
+        val = self.data.pop()
+        self.lock.release()
+        return val
+
+    def put(self, item):
+        self.lock.acquire()
+        self.data.insert(0, item)
+        self.lock.release()
+    
 
 # -------------------------------------------------------------------
 class Stack_p:
-	pass
+    def __init__(self):
+        self.data = []
+        self.lock = threading.Lock()
 
+    def push(self, item):
+        self.lock.acquire()
+        self.data.append(item)
+        self.lock.release()
+    
+    def pop(self):
+        self.lock.acquire()
+        val = self.data.pop()
+        self.lock.release()
+        return val
+
+def enqueue(q, start, end):
+    for i in range(start, end):
+        print(i)
+        q.put(i)
+
+def dequeue(q):
+    while q.size() > 0:
+        print(q.get())
+
+def testQueueT(threadCount):
+    qt = Queue_t()
+    threads = []
+    for i in range(threadCount):
+        threads.append(threading.Thread(target=enqueue, args=(qt, (i + 1) * 10, (i + 1) * 20)))
+
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    threads = []
+    for i in range(threadCount):
+        threads.append(threading.Thread(target=dequeue, args=(qt,)))
+    
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+def testQueueP(processCount):
+    qp = Queue_p()
+    processes = []
+    for i in range(processCount):
+        processes.append(mp.Process(target=enqueue, args=(qp, (i + 1) * 10, (i + 1) * 20)))
+
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
+
+    processes = []
+    for i in range(processCount):
+        processes.append(mp.Process(target=dequeue, args=(qt,)))
+    
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
 
 def main():
-    pass
-
+    print("Queue Thread Test")
+    testQueueT(5)
+    print("Queue Process Test")
+    testQueueP(5)
+    
 if __name__ == '__main__':
     main()

@@ -27,7 +27,83 @@ Part 3:
 
 ************************************/
 import java.util.Random; 
-import java.lang.Math; 
+import java.lang.Math;
+
+class PrimeThread extends Thread {
+  private int[] arr;
+  private int start;
+  private int end;
+
+  PrimeThread(int[] arr, int start, int end) {
+    this.arr = arr;
+    this.start = start;
+    this.end = end;
+  }
+
+  @Override
+  public void run() {
+    for (int i = this.start; i <= this.end; i++) {
+      if (isPrime(this.arr[i])) {
+        System.out.println(this.arr[i]);
+      }
+    }
+  }
+  
+  private static boolean isPrime(int n) 
+  { 
+      // Corner cases 
+      if (n <= 1) return false; 
+      if (n <= 3) return true; 
+    
+      // This is checked so that we can skip  
+      // middle five numbers in below loop 
+      if (n % 2 == 0 || n % 3 == 0) return false; 
+    
+      for (int i = 5; i * i <= n; i = i + 6) 
+        if (n % i == 0 || n % (i + 2) == 0) 
+          return false; 
+    
+      return true; 
+  }
+}
+
+class RunnablePrime implements Runnable {
+  private int[] arr;
+  private int start;
+  private int end;
+
+  public RunnablePrime(int[] arr, int start, int end) {
+    this.arr = arr;
+    this.start = start;
+    this.end = end;
+  }
+
+  @Override
+  public void run() {
+    for (int i = this.start; i <= this.end; i++) {
+      if (isPrime(this.arr[i])) {
+        System.out.println(this.arr[i]);
+      }
+    }
+  }
+  
+  private static boolean isPrime(int n) 
+  { 
+      // Corner cases 
+      if (n <= 1) return false; 
+      if (n <= 3) return true; 
+    
+      // This is checked so that we can skip  
+      // middle five numbers in below loop 
+      if (n % 2 == 0 || n % 3 == 0) return false; 
+    
+      for (int i = 5; i * i <= n; i = i + 6) 
+        if (n % i == 0 || n % (i + 2) == 0) 
+          return false; 
+    
+      return true; 
+  }
+}
 
 class Main {
 
@@ -61,13 +137,34 @@ class Main {
       array[i] = Math.abs(rand.nextInt());
     }
 
-  // TODO - this is just sample code. you can remove it.
-    for (int i = 0; i < count; i++) 
-    {
-      if (isPrime(array[i]))
-      {
-        System.out.println(array[i]);
+    System.out.println("Primes the First");
+
+    int threadCount = 4;
+    PrimeThread[] threads = new PrimeThread[threadCount];
+    for (int i = 0; i < threadCount; i++) {
+      if (i == threadCount - 1) {
+        threads[i] = new PrimeThread(array, i * (count / threadCount), count - 1);
+      } else {
+        threads[i] = new PrimeThread(array, i * (count / threadCount), ((i + 1) * (count / threadCount)) - 1);
       }
+      threads[i].start();
     }
+
+    System.out.println("Primes the Second");
+
+    Thread[] runnableThreads = new Thread[threadCount];
+    for (int i = 0; i < threadCount; i++) {
+      if (i == threadCount - 1) {
+        runnableThreads[i] = new Thread(
+          new RunnablePrime(array, i * (count / threadCount), count - 1)
+        );
+      } else {
+        runnableThreads[i] = new Thread(
+          new RunnablePrime(array, i * (count / threadCount), ((i + 1) * (count / threadCount)) - 1)
+        );
+      }
+      runnableThreads[i].start();
+    }
+
   }
 }
