@@ -45,8 +45,60 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 )
+
+type Species struct {
+  Name             string
+  Classification   string
+  Designation      string
+  Average_Height   string
+  Skin_Colors      string
+  Hair_Colors      string
+  Eye_Colors       string
+  Average_Lifespan string
+  Homeworld        string
+  Language         string
+  People           []string
+  Films            []string
+  Created          time.Time
+  Edited           time.Time
+  Url              string
+}
+
+func getSpecies(wg *sync.WaitGroup, url string) {
+  	// make a sample HTTP GET request
+	res, err := http.Get(url)
+
+	// check for response error
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// read all response body
+	data, _ := ioutil.ReadAll(res.Body)
+
+	// close response body
+	res.Body.Close()
+
+	// fmt.Println(string(data))
+
+	species := Species{}
+	jsonErr := json.Unmarshal(data, &species)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+		fmt.Println("ERROR Pasing the JSON")
+	}
+
+	fmt.Println("-----------------------------------------------")
+	// fmt.Println(person)
+	fmt.Println("Name          : ", species.Name)
+	fmt.Println("Average_Height: ", species.Average_Height)
+	fmt.Println("Language      : ", species.Language)
+
+  wg.Done()
+}
 
 type Person struct {
 	Birth_year string
@@ -67,7 +119,7 @@ type Person struct {
 	Vehicles   []string
 }
 
-func getPerson(url string) {
+func getPerson(wg *sync.WaitGroup, url string) {
 	// make a sample HTTP GET request
 	res, err := http.Get(url)
 
@@ -96,10 +148,12 @@ func getPerson(url string) {
 	fmt.Println("Name      : ", person.Name)
 	fmt.Println("Birth     : ", person.Birth_year)
 	fmt.Println("Eye color : ", person.Eye_color)
+
+  wg.Done()
 }
 
 func main() {
-	urls := []string{
+	personUrls := []string{
 		"http://swapi.dev/api/people/1/",
 		"http://swapi.dev/api/people/2/",
 		"http://swapi.dev/api/people/3/",
@@ -120,9 +174,46 @@ func main() {
 		"http://swapi.dev/api/people/81/",
 	}
 
-	for _, url := range urls {
-		getPerson(url)
+  var personWg sync.WaitGroup
+
+  personWg.Add(len(personUrls))
+	for _, url := range personUrls {
+		go getPerson(&personWg, url)
 	}
+
+  personWg.Wait()
+
+  speciesUrls := []string {
+    "http://swapi.dev/api/species/1/",
+    "http://swapi.dev/api/species/2/",
+    "http://swapi.dev/api/species/3/",
+    "http://swapi.dev/api/species/6/",
+    "http://swapi.dev/api/species/15/",
+    "http://swapi.dev/api/species/19/",
+    "http://swapi.dev/api/species/20/",
+    "http://swapi.dev/api/species/23/",
+    "http://swapi.dev/api/species/24/",
+    "http://swapi.dev/api/species/25/",
+    "http://swapi.dev/api/species/26/",
+    "http://swapi.dev/api/species/27/",
+    "http://swapi.dev/api/species/28/",
+    "http://swapi.dev/api/species/29/",
+    "http://swapi.dev/api/species/30/",
+    "http://swapi.dev/api/species/33/",
+    "http://swapi.dev/api/species/34/",
+    "http://swapi.dev/api/species/35/",
+    "http://swapi.dev/api/species/36/",
+    "http://swapi.dev/api/species/37/",
+  }
+
+  var speciesWg sync.WaitGroup
+
+  speciesWg.Add(len(speciesUrls))
+	for _, url := range speciesUrls {
+		go getSpecies(&speciesWg, url)
+	}
+
+  speciesWg.Wait()
 
 	fmt.Println("All done!")
 }
