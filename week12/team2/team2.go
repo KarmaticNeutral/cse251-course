@@ -27,6 +27,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	//"sync"
 	"time"
 )
 
@@ -52,12 +53,22 @@ func isPrime(n int) bool {
 	return true
 }
 
-func worker() {
-	// TODO - process numbers on one channel and place prime number on another
+func worker(bulkNum chan int, primes chan int) {//, wg *sync.WaitGroup) {
+	for num := range bulkNum {
+    if isPrime(num) {
+      primes <- num
+    }
+  }
+
+  //wg.Done()
 }
 
-func readValues() {
-	// TODO -Display prime numbers from a channel
+func readValues(primes chan int) {//, wg *sync.WaitGroup) {
+  for p := range primes {
+  	fmt.Println(p)
+  }
+
+  //wg.Done()
 }
 
 func main() {
@@ -65,17 +76,29 @@ func main() {
 	workers := 10
 	numberValues := 100
 
+  bulkNum := make(chan int)
+  primes := make(chan int)
+
+  //var wg sync.WaitGroup
+  //wg.Add(workers + 1)
+
 	// create workers
 	for w := 1; w <= workers; w++ {
-		go worker() // Add any arguments
+		go worker(bulkNum, primes)//, &wg) // Add any arguments
 	}
+  
 
 	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < numberValues; i++ {
-		// ch <- rand.Int()
+	for i := 0; i < numberValues; i++ { 
+    //fmt.Println(rand.Intn(1000))
+		bulkNum <- rand.Int()
 	}
 
-	go readValues() // Add any arguments
+	go readValues(primes)//, &wg) // Add any arguments
+
+  //wg.Wait()
+
+  time.Sleep(20 * time.Second)
 
 	fmt.Println("All Done!")
 }
