@@ -2,7 +2,7 @@
 Course: CSE 251
 Lesson Week: 14
 File: assignment.py
-Author: <your name>
+Author: Timothy Taylor
 Purpose: Assignment 13 - Family Search
 
 Instructions:
@@ -285,10 +285,53 @@ class Request_thread(threading.Thread):
 # TODO - Change this function to speed it up.  Your goal is to create the complete
 #        tree faster.
 def depth_fs_pedigree(family_id, tree):
-    if family_id == None:
+    if family_id == None or tree.does_family_exist(family_id):
         return
 
     print(f'Retrieving Family: {family_id}')
+
+    req = Request_thread(f'{TOP_API_URL}/family/{family_id}')
+    req.start()
+    req.join()
+
+    family = Family(family_id, req.response)
+    tree.add_family(family)
+    doHus = False
+    if not family.husband == None and not tree.does_person_exist(family.husband):
+        doHus = True
+        husReq = Request_thread(f'{TOP_API_URL}/person/{family.husband}')
+        husReq.start()
+
+    doWif = False
+    if not family.wife == None and not tree.does_person_exist(family.wife):
+        doWif = True
+        wifReq = Request_thread(f'{TOP_API_URL}/person/{family.wife}')
+        wifReq.start()
+    
+    if doHus:
+        husReq.join()
+        husband = Person(husReq.response)
+        tree.add_person(husband)
+    
+    if doWif:
+        wifReq.join()
+        wife = Person(wifReq.response)
+        tree.add_person(wife)
+
+    for id in family.children:
+        if not tree.does_person_exist(id):
+            req = Request_thread(f'{TOP_API_URL}/person/{id}')
+            req.start()
+            req.join()
+            tree.add_person(Person(req.response))
+    
+    husThr = threading.Thread(target=depth_fs_pedigree, args=(husband.parents, tree))
+    wifThr = threading.Thread(target=depth_fs_pedigree, args=(wife.parents, tree))
+
+    husThr.start()
+    wifThr.start()
+    husThr.join()
+    wifThr.join()
 
     """
     outline:
